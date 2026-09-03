@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Meet 字幕保存</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        width: 420px;
+        max-height: 580px;
+        margin: 0;
+        padding: 16px;
+        overflow: auto;
+        background: #f8fafd;
+        color: #202124;
+        font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      h1 { margin: 0 0 4px; font-size: 18px; }
+      .description { margin: 0 0 14px; color: #5f6368; }
+      .history { display: grid; gap: 8px; }
+      .record {
+        width: 100%;
+        border: 1px solid #dadce0;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .record:hover { border-color: #1a73e8; background: #f4f8ff; }
+      .record-title { display: block; font-weight: 700; }
+      .record-time, .record-preview { display: block; color: #5f6368; }
+      .record-preview {
+        margin-top: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .active { border-color: #34a853; }
+      .active .record-time { color: #137333; }
+      .empty { padding: 20px 0; color: #5f6368; text-align: center; }
+      .viewer { margin-top: 14px; }
+      .viewer[hidden] { display: none; }
+      .viewer-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .viewer h2 { margin: 0 0 8px; font-size: 14px; }
+      textarea {
+        width: 100%;
+        height: 240px;
+        resize: vertical;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 9px;
+        background: #fff;
+        color: #202124;
+        font: 12px/1.5 monospace;
+      }
+      button.select {
+        border: 1px solid #1a73e8;
+        border-radius: 7px;
+        padding: 5px 8px;
+        background: #fff;
+        color: #1a73e8;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
+      .status { min-height: 20px; margin-top: 6px; color: #5f6368; }
+    </style>
+  </head>
+  <body>
+    <h1>Meet 字幕保存</h1>
+    <p class="description">Chrome内に保存した最新20件です。</p>
+    <div class="history" aria-label="保存した文字起こし"></div>
+    <p class="empty" hidden>保存した文字起こしはありません。</p>
+    <section class="viewer" hidden>
+      <div class="viewer-header">
+        <h2>文字起こし本文</h2>
+        <button class="select" type="button">全文を選択</button>
+      </div>
+      <textarea readonly aria-label="文字起こし本文"></textarea>
+      <div class="status" aria-live="polite"></div>
+    </section>
+    <script src="popup.js"></script>
+  </body>
+</html>

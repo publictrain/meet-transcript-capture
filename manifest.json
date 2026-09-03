@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Meet 字幕保存",
+  "version": "0.4.1",
+  "description": "Google Meet に表示された字幕をChrome内へ自動保存します。",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "保存したMeet文字起こしを開く",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["capture-core.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
