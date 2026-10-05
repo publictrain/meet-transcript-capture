@@ -21,7 +21,7 @@ function createRecordButton(record, { active = false } = {}) {
 
   const title = document.createElement("span");
   title.className = "record-title";
-  title.textContent = record.title || "Google Meet";
+  title.textContent = record.title || "会議";
 
   const time = document.createElement("span");
   time.className = "record-time";
@@ -77,7 +77,7 @@ selectButton.addEventListener("click", () => {
 });
 
 void loadHistory().catch((error) => {
-  console.error("Meet文字起こし履歴を読み込めませんでした", error);
+  console.error("会議文字起こし履歴を読み込めませんでした", error);
   emptyElement.hidden = false;
   emptyElement.textContent = "履歴を読み込めませんでした。";
 });

@@ -21,7 +21,7 @@
       return true;
     }
 
-    // Meetは認識途中の単語を後から修正する。先頭部分がある程度同じなら、
+    // 会議サービスの字幕は認識途中の単語を後から修正する。先頭部分がある程度同じなら、
     // 新しい発言を増やさず同じ字幕行の訂正として扱う。
     const shorterLength = Math.min(previousText.length, nextText.length);
     let commonPrefixLength = 0;
@@ -33,6 +33,38 @@
     }
 
     return shorterLength > 0 && commonPrefixLength / shorterLength >= 0.4;
+  }
+
+  const PLATFORM_CONFIGS = {
+    "meet.google.com": {
+      id: "meet",
+      displayName: "Google Meet",
+      requiredFrameId: null,
+      captionSelectors: [
+        "[data-message-text]",
+        '[jsname="YSxPC"]',
+        '[role="region"][aria-label="字幕"] .ygicle',
+        ".iTTPOb",
+      ],
+      leaveButtonSelectors: [
+        'button[aria-label*="通話から退出"]',
+        'button[aria-label*="Leave call"]',
+      ],
+    },
+    "app.zoom.us": {
+      id: "zoom",
+      displayName: "Zoom",
+      requiredFrameId: "webclient",
+      captionSelectors: [".live-transcription-subtitle__item"],
+      leaveButtonSelectors: [
+        'button[aria-label="退出"]',
+        'button[aria-label="Leave"]',
+      ],
+    },
+  };
+
+  function getMeetingPlatform(hostname) {
+    return PLATFORM_CONFIGS[String(hostname || "").toLowerCase()] || null;
   }
 
   class TranscriptStore {
@@ -59,7 +91,7 @@
         }
       }
 
-      // Meetが同じDOM要素を次の発言へ再利用する場合がある。
+      // 会議サービスが同じDOM要素を次の発言へ再利用する場合がある。
       // 内容が連続していなければ以前の行を残し、新しい発言として追加する。
       const lastLine = this.lines.at(-1);
       if (lastLine && lastLine.text === text) {
@@ -76,7 +108,7 @@
       this.activeLineBySource.delete(sourceId);
     }
 
-    toText({ title = "Google Meet", startedAt = new Date() } = {}) {
+    toText({ title = "会議", startedAt = new Date() } = {}) {
       const header = [
         `会議: ${title}`,
         `記録開始: ${startedAt.toLocaleString("ja-JP")}`,
@@ -89,7 +121,14 @@
     }
   }
 
-  const api = { TranscriptStore, isSameUtterance, normalizeCaption };
+  const api = {
+    TranscriptStore,
+    getMeetingPlatform,
+    isSameUtterance,
+    normalizeCaption,
+  };
+  globalScope.MeetingTranscriptCapture = api;
+  // 旧版のグローバル名も残し、更新時に既存タブが参照しても壊れないようにする。
   globalScope.MeetTranscriptCapture = api;
 
   if (typeof module !== "undefined" && module.exports) {

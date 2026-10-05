@@ -1,18 +1,25 @@
-(function initializeMeetTranscriptCapture() {
+(function initializeMeetingTranscriptCapture() {
   "use strict";
 
-  if (window.__meetTranscriptCaptureLoaded) {
+  const { TranscriptStore, getMeetingPlatform } = window.MeetingTranscriptCapture;
+  const platform = getMeetingPlatform(location.hostname);
+  if (!platform) {
     return;
   }
-  window.__meetTranscriptCaptureLoaded = true;
 
-  const { TranscriptStore } = window.MeetTranscriptCapture;
-  const CAPTION_SELECTORS = [
-    "[data-message-text]",
-    '[jsname="YSxPC"]',
-    '[role="region"][aria-label="字幕"] .ygicle',
-    ".iTTPOb",
-  ];
+  // Zoomの会議UIはwebclient iframe内にある。all_framesで読み込みつつ、
+  // トップページや補助iframeにはパネルを重複表示しない。
+  if (platform.requiredFrameId && window.frameElement?.id !== platform.requiredFrameId) {
+    return;
+  }
+
+  if (window.__meetingTranscriptCaptureLoaded) {
+    return;
+  }
+  window.__meetingTranscriptCaptureLoaded = true;
+
+  const CAPTION_SELECTORS = platform.captionSelectors;
+  const extensionTitle = "Meet / Zoom 字幕保存";
 
   let transcript = new TranscriptStore();
   let startedAt = null;
@@ -99,9 +106,9 @@
       .history-title { font-weight: 700; }
       .history-time { color: #5f6368; font-size: 11px; }
     </style>
-    <section class="panel" aria-label="Meet 字幕保存">
-      <p class="title">Meet 字幕保存</p>
-      <div class="status" data-active="false">Meetの字幕をONにしてから開始してください。</div>
+    <section class="panel" aria-label="${extensionTitle}">
+      <p class="title">${extensionTitle}</p>
+      <div class="status" data-active="false">${platform.displayName}の字幕をONにしてから開始してください。</div>
       <div class="actions">
         <button class="primary" data-action="toggle">記録開始</button>
         <button data-action="save" disabled>保存</button>
@@ -144,7 +151,7 @@
   }
 
   function hasActiveCall() {
-    return Boolean(document.querySelector('button[aria-label*="通話から退出"]'));
+    return platform.leaveButtonSelectors.some((selector) => document.querySelector(selector));
   }
 
   function createTranscriptRecord({ savedAt = new Date().toISOString() } = {}) {
@@ -152,7 +159,8 @@
       id: captureId || savedAt,
       savedAt,
       startedAt: (startedAt || new Date()).toISOString(),
-      title: document.title || "Google Meet",
+      title: document.title || platform.displayName,
+      platform: platform.id,
       text: createTranscriptText(),
     };
   }
@@ -176,7 +184,7 @@
     checkpointTimer = window.setTimeout(() => {
       checkpointTimer = null;
       void checkpointTranscript().catch((error) => {
-        console.error("Meet字幕の仮保存に失敗しました", error);
+        console.error("会議字幕の仮保存に失敗しました", error);
       });
     }, 500);
   }
@@ -240,7 +248,7 @@
   function startCapture() {
     transcript = new TranscriptStore();
     startedAt = new Date();
-    captureId = `${location.pathname}-${startedAt.toISOString()}`;
+    captureId = `${platform.id}:${location.pathname}:${startedAt.toISOString()}`;
     isCapturing = true;
     hadActiveCall = hasActiveCall();
     callMissingSince = null;
@@ -254,7 +262,7 @@
     previewElement.hidden = true;
 
     // 字幕は認識途中に同じ要素の文字だけを書き換えるため、子要素の追加だけでなく
-    // characterDataも監視する。定期走査はGoogle側のDOM差し替えを取りこぼさないための補助。
+    // characterDataも監視する。定期走査は会議サービス側のDOM差し替えを取りこぼさないための補助。
     observer = new MutationObserver(scanCaptions);
     observer.observe(document.body, {
       childList: true,
@@ -285,15 +293,15 @@
       void checkpointTranscript()
         .then(() => saveTranscript(reason))
         .catch((error) => {
-          console.error("Meet字幕の終了時保存に失敗しました", error);
-          statusElement.textContent = "保存に失敗しました。次回Meet起動時に復旧を試みます。";
+          console.error("会議字幕の終了時保存に失敗しました", error);
+          statusElement.textContent = "保存に失敗しました。次回対応サイト起動時に復旧を試みます。";
         });
     }
   }
 
   function createTranscriptText() {
     return transcript.toText({
-      title: document.title || "Google Meet",
+      title: document.title || platform.displayName,
       startedAt: startedAt || new Date(),
     });
   }
@@ -324,7 +332,7 @@
         ? `会議終了時に自動保存しました: ${transcript.lines.length} 行`
         : `ブラウザ内に保存しました: ${transcript.lines.length} 行`;
     } catch (error) {
-      console.error("Meet字幕の保存に失敗しました", error);
+      console.error("会議字幕の保存に失敗しました", error);
       statusElement.textContent = "保存に失敗しました。もう一度お試しください。";
     }
   }
@@ -347,7 +355,7 @@
 
     const title = document.createElement("span");
     title.className = "history-title";
-    title.textContent = record.title || "Google Meet";
+    title.textContent = record.title || "会議";
 
     const time = document.createElement("span");
     time.className = "history-time";
@@ -402,7 +410,7 @@
   saveButton.addEventListener("click", () => void saveTranscript());
   historyButton.addEventListener("click", () => {
     void showHistory().catch((error) => {
-      console.error("Meet字幕の履歴を表示できませんでした", error);
+      console.error("会議字幕の履歴を表示できませんでした", error);
       statusElement.textContent = "履歴を表示できませんでした。";
     });
   });
@@ -415,7 +423,7 @@
     ]);
 
     // タブ終了では非同期の正式保存が完了しない場合がある。字幕変更時の仮保存を
-    // 次回Meet起動時に履歴へ昇格し、閉じた会議の文字起こしを失わないようにする。
+    // 次回対応サイト起動時に履歴へ昇格し、閉じた会議の文字起こしを失わないようにする。
     if (typeof stored.activeTranscript?.text === "string") {
       const recovered = {
         ...stored.activeTranscript,
@@ -445,7 +453,7 @@
   }
 
   void loadStoredTranscripts().catch((error) => {
-    console.error("保存済みのMeet字幕を読み込めませんでした", error);
+    console.error("保存済みの会議字幕を読み込めませんでした", error);
   });
 
   // pagehideの非同期処理は完了が保証されないため、主な保全は字幕変更時の仮保存で行う。

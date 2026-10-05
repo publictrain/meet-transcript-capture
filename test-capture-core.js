@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const {
   TranscriptStore,
+  getMeetingPlatform,
   isSameUtterance,
   normalizeCaption,
 } = require("./capture-core.js");
@@ -11,6 +12,12 @@ assert.equal(normalizeCaption("  おはよう\nございます  "), "おはよ�
 assert.equal(isSameUtterance("本日は", "本日はよろしくお願いします"), true);
 assert.equal(isSameUtterance("本日はよろしく", "本日は宜しくお願いします"), true);
 assert.equal(isSameUtterance("最初の話題", "次の話題"), false);
+assert.equal(getMeetingPlatform("meet.google.com").id, "meet");
+assert.equal(getMeetingPlatform("app.zoom.us").id, "zoom");
+assert.deepEqual(getMeetingPlatform("app.zoom.us").captionSelectors, [
+  ".live-transcription-subtitle__item",
+]);
+assert.equal(getMeetingPlatform("example.com"), null);
 
 const store = new TranscriptStore();
 store.upsert("caption-1", "本日は", new Date("2026-08-27T01:00:00Z"));

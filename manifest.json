@@ -1,18 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Meet 字幕保存",
-  "version": "0.4.1",
-  "description": "Google Meet に表示された字幕をChrome内へ自動保存します。",
+  "name": "Meet / Zoom 字幕保存",
+  "version": "0.5.0",
+  "description": "Google Meet と Zoom に表示された字幕をChrome内へ自動保存します。",
   "permissions": ["storage"],
   "action": {
-    "default_title": "保存したMeet文字起こしを開く",
+    "default_title": "保存した会議文字起こしを開く",
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*"],
+      "matches": ["https://meet.google.com/*", "https://app.zoom.us/*"],
       "js": ["capture-core.js", "content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ]
 }
